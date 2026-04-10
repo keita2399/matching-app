@@ -1,12 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { doc, updateDoc } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useAuth } from '@/contexts/AuthContext'
 import { db, storage } from '@/lib/firebase'
-import { Camera } from 'lucide-react'
+import { Camera, Images } from 'lucide-react'
 
 const STEPS = ['写真', '基本情報', '詳細情報', '自己紹介']
 
@@ -18,6 +18,9 @@ export default function ProfileSetup() {
 
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState('')
+  const [showPhotoMenu, setShowPhotoMenu] = useState(false)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
   const [nickname, setNickname] = useState('')
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
@@ -78,7 +81,7 @@ export default function ProfileSetup() {
         {step === 1 && (
           <div className="text-center space-y-4">
             <h2 className="text-xl font-bold text-gray-800">プロフィール写真 📸</h2>
-            <label className="cursor-pointer inline-block">
+            <button type="button" onClick={() => setShowPhotoMenu(true)} className="inline-block focus:outline-none">
               <div className="w-32 h-32 rounded-full border-4 border-dashed border-pink-300 flex items-center justify-center mx-auto overflow-hidden bg-pink-50 hover:bg-pink-100 transition">
                 {photoPreview ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -90,8 +93,44 @@ export default function ProfileSetup() {
                   </div>
                 )}
               </div>
-              <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-            </label>
+            </button>
+            {/* 隠しinput: カメラ */}
+            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} className="hidden" />
+            {/* 隠しinput: アルバム */}
+            <input ref={galleryInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+          </div>
+        )}
+
+        {/* 写真選択メニュー */}
+        {showPhotoMenu && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setShowPhotoMenu(false)}>
+            <div className="absolute inset-0 bg-black/40" />
+            <div className="relative w-full max-w-md bg-white rounded-t-3xl p-6 space-y-3" onClick={e => e.stopPropagation()}>
+              <p className="text-center text-sm text-gray-500 font-medium mb-4">写真を選択</p>
+              <button
+                type="button"
+                onClick={() => { setShowPhotoMenu(false); cameraInputRef.current?.click() }}
+                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-pink-50 hover:bg-pink-100 transition"
+              >
+                <Camera className="w-6 h-6 text-pink-500" />
+                <span className="text-gray-800 font-medium">カメラで撮影</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowPhotoMenu(false); galleryInputRef.current?.click() }}
+                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-purple-50 hover:bg-purple-100 transition"
+              >
+                <Images className="w-6 h-6 text-purple-500" />
+                <span className="text-gray-800 font-medium">アルバムから選択</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPhotoMenu(false)}
+                className="w-full py-3 text-gray-500 font-medium hover:text-gray-700 transition"
+              >
+                キャンセル
+              </button>
+            </div>
           </div>
         )}
 
