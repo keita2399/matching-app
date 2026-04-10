@@ -42,11 +42,16 @@ export default function ProfileSetup() {
     if (!user) return
     setLoading(true)
     try {
-      let photoURL = ''
+      let photoURL = `https://api.dicebear.com/9.x/adventurer/svg?seed=${user.uid}`
       if (photo) {
-        const storageRef = ref(storage, `avatars/${user.uid}`)
-        await uploadBytes(storageRef, photo)
-        photoURL = await getDownloadURL(storageRef)
+        try {
+          const storageRef = ref(storage, `avatars/${user.uid}`)
+          await uploadBytes(storageRef, photo)
+          photoURL = await getDownloadURL(storageRef)
+        } catch (uploadErr) {
+          console.error('photo upload failed, using placeholder:', uploadErr)
+          // ストレージ未設定の場合はプレースホルダーを使用
+        }
       }
       await updateDoc(doc(db, 'users', user.uid), {
         nickname, age: parseInt(age), gender, location,
