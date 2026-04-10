@@ -25,6 +25,7 @@ export default function Signup() {
       await signup(email, password)
       router.push('/email-verification')
     } catch (err: unknown) {
+      console.error('signup error:', err)
       const code = (err as { code?: string }).code
       if (code === 'auth/email-already-in-use') {
         setError('このメールアドレスはすでに登録されています')
