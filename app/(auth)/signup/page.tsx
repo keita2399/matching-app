@@ -24,8 +24,17 @@ export default function Signup() {
     try {
       await signup(email, password)
       router.push('/email-verification')
-    } catch {
-      setError('登録に失敗しました。メールアドレスを確認してください')
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code
+      if (code === 'auth/email-already-in-use') {
+        setError('このメールアドレスはすでに登録されています')
+      } else if (code === 'auth/invalid-email') {
+        setError('メールアドレスの形式が正しくありません')
+      } else if (code === 'auth/weak-password') {
+        setError('パスワードが弱すぎます。6文字以上にしてください')
+      } else {
+        setError('登録に失敗しました。しばらくしてから再試行してください')
+      }
     } finally {
       setLoading(false)
     }
