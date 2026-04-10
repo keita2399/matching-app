@@ -3,9 +3,8 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { doc, updateDoc } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
 import { useAuth } from '@/contexts/AuthContext'
-import { db, storage } from '@/lib/firebase'
+import { db } from '@/lib/firebase'
 import { Camera, Images } from 'lucide-react'
 
 const STEPS = ['写真', '基本情報', '詳細情報', '自己紹介']
@@ -44,13 +43,13 @@ export default function ProfileSetup() {
     try {
       let photoURL = `https://api.dicebear.com/9.x/adventurer/svg?seed=${user.uid}`
       if (photo) {
-        try {
-          const storageRef = ref(storage, `avatars/${user.uid}`)
-          await uploadBytes(storageRef, photo)
-          photoURL = await getDownloadURL(storageRef)
-        } catch (uploadErr) {
-          console.error('photo upload failed, using placeholder:', uploadErr)
-          // ストレージ未設定の場合はプレースホルダーを使用
+        const formData = new FormData()
+        formData.append('file', photo)
+        formData.append('uid', user.uid)
+        const res = await fetch('/api/upload', { method: 'POST', body: formData })
+        if (res.ok) {
+          const data = await res.json()
+          photoURL = data.url
         }
       }
       await updateDoc(doc(db, 'users', user.uid), {
