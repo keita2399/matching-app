@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { doc, updateDoc } from 'firebase/firestore'
 import { useAuth } from '@/contexts/AuthContext'
@@ -18,8 +18,6 @@ export default function ProfileSetup() {
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState('')
   const [showPhotoMenu, setShowPhotoMenu] = useState(false)
-  const cameraInputRef = useRef<HTMLInputElement>(null)
-  const galleryInputRef = useRef<HTMLInputElement>(null)
   const [nickname, setNickname] = useState('')
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
@@ -98,10 +96,6 @@ export default function ProfileSetup() {
                 )}
               </div>
             </button>
-            {/* 隠しinput: カメラ */}
-            <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} className="hidden" />
-            {/* 隠しinput: アルバム */}
-            <input ref={galleryInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
           </div>
         )}
 
@@ -111,22 +105,22 @@ export default function ProfileSetup() {
             <div className="absolute inset-0 bg-black/40" />
             <div className="relative w-full max-w-md bg-white rounded-t-3xl p-6 space-y-3" onClick={e => e.stopPropagation()}>
               <p className="text-center text-sm text-gray-500 font-medium mb-4">写真を選択</p>
-              <button
-                type="button"
-                onClick={() => { setShowPhotoMenu(false); cameraInputRef.current?.click() }}
-                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-pink-50 hover:bg-pink-100 transition"
+              <label
+                onClick={() => setShowPhotoMenu(false)}
+                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-pink-50 hover:bg-pink-100 transition cursor-pointer"
               >
                 <Camera className="w-6 h-6 text-pink-500" />
                 <span className="text-gray-800 font-medium">カメラで撮影</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowPhotoMenu(false); galleryInputRef.current?.click() }}
-                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-purple-50 hover:bg-purple-100 transition"
+                <input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} className="hidden" />
+              </label>
+              <label
+                onClick={() => setShowPhotoMenu(false)}
+                className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-purple-50 hover:bg-purple-100 transition cursor-pointer"
               >
                 <Images className="w-6 h-6 text-purple-500" />
                 <span className="text-gray-800 font-medium">アルバムから選択</span>
-              </button>
+                <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+              </label>
               <button
                 type="button"
                 onClick={() => setShowPhotoMenu(false)}
