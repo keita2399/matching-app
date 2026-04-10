@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { doc, getDoc, setDoc, getDocs, query, collection, where } from 'firebase/firestore'
+import { doc, getDoc, setDoc, getDocs, addDoc, query, collection, where } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
-import { ArrowLeft, Heart, MapPin, Briefcase, GraduationCap } from 'lucide-react'
+import { ArrowLeft, Heart, MapPin, Briefcase, GraduationCap, Flag } from 'lucide-react'
 import type { UserProfile } from '@/contexts/AuthContext'
 
 export default function UserDetail() {
@@ -15,6 +15,9 @@ export default function UserDetail() {
   const [target, setTarget] = useState<UserProfile | null>(null)
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(0)
+  const [showReport, setShowReport] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reported, setReported] = useState(false)
 
   useEffect(() => {
     if (!user) { router.push('/login'); return }
@@ -53,6 +56,16 @@ export default function UserDetail() {
     setLiked(true)
   }
 
+  const handleReport = async () => {
+    if (!user || !reportReason.trim()) return
+    await addDoc(collection(db, 'reports'), {
+      reporterUid: user.uid, targetUid: id,
+      reason: reportReason.trim(), createdAt: new Date(),
+    })
+    setReported(true)
+    setShowReport(false)
+  }
+
   if (!target) return <div className="flex items-center justify-center h-screen"><div className="text-pink-500 animate-pulse">読み込み中...</div></div>
 
   return (
@@ -73,7 +86,13 @@ export default function UserDetail() {
         >
           <ArrowLeft className="w-5 h-5 text-gray-700" />
         </button>
-        <div className="absolute top-4 right-4 w-3 h-3 bg-green-400 rounded-full shadow-lg border-2 border-white" title="オンライン" />
+        <button
+          onClick={() => setShowReport(true)}
+          className="absolute top-4 right-4 bg-white/80 backdrop-blur-sm rounded-full p-2 shadow-lg"
+          title="通報する"
+        >
+          <Flag className="w-4 h-4 text-gray-500" />
+        </button>
       </div>
 
       {/* プロフィール情報 */}
@@ -109,8 +128,37 @@ export default function UserDetail() {
               いいねする 💕
             </button>
           )}
+          {reported && <p className="text-center text-xs text-gray-400 mt-2">通報を受け付けました</p>}
         </div>
       </div>
+
+      {/* 通報モーダル */}
+      {showReport && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center p-4" onClick={() => setShowReport(false)}>
+          <div className="bg-white rounded-3xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
+            <h2 className="text-lg font-bold text-gray-800">🚨 通報する</h2>
+            <p className="text-sm text-gray-500">問題のある内容を報告してください。運営が確認します。</p>
+            <div className="space-y-2">
+              {['スパム・迷惑行為', '不適切な写真', '偽プロフィール', '誹謗中傷', 'その他'].map(r => (
+                <button
+                  key={r}
+                  onClick={() => setReportReason(r)}
+                  className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm transition ${reportReason === r ? 'border-pink-400 bg-pink-50 font-bold text-pink-600' : 'border-gray-100 hover:border-pink-200'}`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleReport}
+              disabled={!reportReason}
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl disabled:opacity-40 transition"
+            >
+              通報する
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -4,8 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { doc, updateDoc } from 'firebase/firestore'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { db, storage } from '@/lib/firebase'
+import { db } from '@/lib/firebase'
 import { useAuth } from '@/contexts/AuthContext'
 import { Crown, LogOut, Edit2, Camera, ChevronRight } from 'lucide-react'
 
@@ -30,11 +29,15 @@ export default function MyPage() {
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !user) return
-    const storageRef = ref(storage, `avatars/${user.uid}`)
-    await uploadBytes(storageRef, file)
-    const url = await getDownloadURL(storageRef)
-    await updateDoc(doc(db, 'users', user.uid), { photoURL: url })
-    await refreshProfile()
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('uid', user.uid)
+    const res = await fetch('/api/upload', { method: 'POST', body: formData })
+    if (res.ok) {
+      const data = await res.json()
+      await updateDoc(doc(db, 'users', user.uid), { photoURL: data.url })
+      await refreshProfile()
+    }
   }
 
   const handleSave = async () => {

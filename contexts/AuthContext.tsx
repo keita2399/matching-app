@@ -94,7 +94,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const login = async (email: string, password: string) => {
-    await signInWithEmailAndPassword(auth, email, password)
+    const cred = await signInWithEmailAndPassword(auth, email, password)
+    const snap = await getDoc(doc(db, 'users', cred.user.uid))
+    if (snap.exists() && snap.data().banned) {
+      await signOut(auth)
+      throw { code: 'auth/user-banned' }
+    }
   }
 
   const logout = async () => {

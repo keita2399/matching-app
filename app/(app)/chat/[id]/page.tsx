@@ -29,11 +29,15 @@ export default function Chat() {
   useEffect(() => {
     if (!user) { router.push('/login'); return }
     fetchPartner()
+    // 既読リセット
+    updateDoc(doc(db, 'chats', id), { [`unread_${user.uid}`]: 0 }).catch(() => {})
     const unsub = onSnapshot(
       query(collection(db, 'chats', id, 'messages'), orderBy('createdAt', 'asc')),
       snap => {
         setMessages(snap.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate?.() } as Message)))
         setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+        // 新着メッセージも既読に
+        updateDoc(doc(db, 'chats', id), { [`unread_${user.uid}`]: 0 }).catch(() => {})
       }
     )
     return unsub
@@ -60,8 +64,12 @@ export default function Chat() {
       await addDoc(collection(db, 'chats', id, 'messages'), {
         text: text.trim(), fromUid: user.uid, createdAt: serverTimestamp(),
       })
+      const chatSnap = await getDoc(doc(db, 'chats', id))
+      const partnerUid = chatSnap.data()?.uids?.find((u: string) => u !== user.uid)
       await updateDoc(doc(db, 'chats', id), {
-        lastMessage: text.trim(), updatedAt: serverTimestamp(),
+        lastMessage: text.trim(),
+        updatedAt: serverTimestamp(),
+        ...(partnerUid ? { [`unread_${partnerUid}`]: increment(1) } : {}),
       })
       if (!profile?.isPremium) {
         await updateDoc(doc(db, 'users', user.uid), { messageCount: increment(1) })

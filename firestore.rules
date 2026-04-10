@@ -18,8 +18,21 @@ service cloud.firestore {
     // マッチ
     match /matches/{matchId} {
       allow read: if request.auth != null &&
-        (request.auth.uid == resource.data.user1Id || request.auth.uid == resource.data.user2Id);
+        (request.auth.uid in resource.data.uids);
       allow create: if request.auth != null;
+    }
+
+    // 通報
+    match /reports/{reportId} {
+      allow read: if false; // 管理者のみ（Admin SDKで読む）
+      allow create: if request.auth != null;
+    }
+
+    // 掲示板
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+      allow delete: if request.auth != null && request.auth.uid == resource.data.uid;
     }
 
     // チャット

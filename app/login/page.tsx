@@ -21,8 +21,13 @@ export default function Login() {
     try {
       await login(email, password)
       router.push('/home')
-    } catch {
-      setError('メールアドレスまたはパスワードが正しくありません')
+    } catch (err: unknown) {
+      const code = (err as { code?: string }).code
+      if (code === 'auth/user-banned') {
+        setError('このアカウントは利用停止されています')
+      } else {
+        setError('メールアドレスまたはパスワードが正しくありません')
+      }
     } finally {
       setLoading(false)
     }

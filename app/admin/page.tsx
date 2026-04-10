@@ -1,14 +1,20 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { useAuth } from '@/contexts/AuthContext'
 import { Search, Ban, CheckCircle } from 'lucide-react'
 import type { UserProfile } from '@/contexts/AuthContext'
+
+const ADMIN_EMAILS = ['keita2399@gmail.com']
 
 type Report = { id: string; reporterUid: string; targetUid: string; reason: string; createdAt: Date }
 
 export default function Admin() {
+  const { user, loading: authLoading } = useAuth()
+  const router = useRouter()
   const [tab, setTab] = useState<'users' | 'reports'>('users')
   const [users, setUsers] = useState<UserProfile[]>([])
   const [reports, setReports] = useState<Report[]>([])
@@ -16,8 +22,13 @@ export default function Admin() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (authLoading) return
+    if (!user || !ADMIN_EMAILS.includes(user.email || '')) {
+      router.replace('/home')
+      return
+    }
     fetchData()
-  }, [])
+  }, [user, authLoading, router])
 
   const fetchData = async () => {
     const [userSnap, reportSnap] = await Promise.all([
