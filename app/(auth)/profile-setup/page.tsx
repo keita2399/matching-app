@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { doc, updateDoc } from 'firebase/firestore'
 import { useAuth } from '@/contexts/AuthContext'
 import { db } from '@/lib/firebase'
-import { Camera, Images } from 'lucide-react'
+import { Camera, Images, X } from 'lucide-react'
+import Webcam from 'react-webcam'
 
 const STEPS = ['写真', '基本情報', '詳細情報', '自己紹介']
 
@@ -18,6 +19,11 @@ export default function ProfileSetup() {
   const [photo, setPhoto] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState('')
   const [showPhotoMenu, setShowPhotoMenu] = useState(false)
+  const [showWebcam, setShowWebcam] = useState(false)
+  const [cameraError, setCameraError] = useState(false)
+  const webcamRef = useRef<Webcam>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const [nickname, setNickname] = useState('')
   const [age, setAge] = useState('')
   const [gender, setGender] = useState('')
@@ -34,6 +40,17 @@ export default function ProfileSetup() {
       setPhotoPreview(URL.createObjectURL(file))
     }
   }
+
+  const handleCapture = useCallback(() => {
+    const imageSrc = webcamRef.current?.getScreenshot()
+    if (imageSrc) {
+      setPhotoPreview(imageSrc)
+      fetch(imageSrc)
+        .then(r => r.blob())
+        .then(blob => setPhoto(new File([blob], 'capture.jpg', { type: 'image/jpeg' })))
+      setShowWebcam(false)
+    }
+  }, [])
 
   const handleSubmit = async () => {
     if (!user) return
@@ -105,21 +122,21 @@ export default function ProfileSetup() {
             <div className="absolute inset-0 bg-black/40" />
             <div className="relative w-full max-w-md bg-white rounded-t-3xl p-6 space-y-3" onClick={e => e.stopPropagation()}>
               <p className="text-center text-sm text-gray-500 font-medium mb-4">写真を選択</p>
-              <label
-                onClick={() => setShowPhotoMenu(false)}
+              <button
+                type="button"
+                onClick={() => { setShowPhotoMenu(false); setCameraError(false); setShowWebcam(true) }}
                 className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-pink-50 hover:bg-pink-100 transition cursor-pointer"
               >
                 <Camera className="w-6 h-6 text-pink-500" />
                 <span className="text-gray-800 font-medium">カメラで撮影</span>
-                <input type="file" accept="image/*" capture="user" onChange={handlePhotoChange} className="hidden" />
-              </label>
+              </button>
               <label
                 onClick={() => setShowPhotoMenu(false)}
                 className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl bg-purple-50 hover:bg-purple-100 transition cursor-pointer"
               >
                 <Images className="w-6 h-6 text-purple-500" />
                 <span className="text-gray-800 font-medium">アルバムから選択</span>
-                <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
               </label>
               <button
                 type="button"
@@ -128,6 +145,50 @@ export default function ProfileSetup() {
               >
                 キャンセル
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Webcamモーダル */}
+        {showWebcam && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80">
+            <div className="w-full max-w-md bg-black rounded-3xl overflow-hidden">
+              <div className="flex justify-between items-center px-4 py-3">
+                <span className="text-white font-medium">カメラで撮影</span>
+                <button onClick={() => setShowWebcam(false)} className="text-white">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              {cameraError ? (
+                <div className="flex flex-col items-center justify-center h-64 gap-4 px-6 text-center">
+                  <Camera className="w-12 h-12 text-gray-400" />
+                  <p className="text-gray-400 text-sm">カメラを使用できません。ファイルから選択してください。</p>
+                  <label className="px-6 py-2 bg-pink-500 text-white rounded-xl cursor-pointer">
+                    ファイルを選択
+                    <input type="file" accept="image/*" onChange={(e) => { handlePhotoChange(e); setShowWebcam(false) }} className="hidden" />
+                  </label>
+                </div>
+              ) : (
+                <>
+                  <Webcam
+                    ref={webcamRef}
+                    audio={false}
+                    screenshotFormat="image/jpeg"
+                    screenshotQuality={0.85}
+                    videoConstraints={{ facingMode: 'user', width: 480, height: 480 }}
+                    onUserMediaError={() => setCameraError(true)}
+                    className="w-full"
+                  />
+                  <div className="flex justify-center py-4">
+                    <button
+                      onClick={handleCapture}
+                      className="w-16 h-16 rounded-full bg-white border-4 border-pink-400 flex items-center justify-center hover:bg-pink-50 transition"
+                    >
+                      <Camera className="w-7 h-7 text-pink-500" />
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
