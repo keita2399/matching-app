@@ -111,7 +111,7 @@ export default function ProfileSetup() {
               >
                 <Camera className="w-6 h-6 text-pink-500" />
                 <span className="text-gray-800 font-medium">カメラで撮影</span>
-                <input type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} className="hidden" />
+                <input type="file" accept="image/*" capture="user" onChange={handlePhotoChange} className="hidden" />
               </label>
               <label
                 onClick={() => setShowPhotoMenu(false)}
